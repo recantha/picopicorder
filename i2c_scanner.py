@@ -1,6 +1,3 @@
-# 0x69 is the AMG8833
-# 0x57 is the Pulse Oximeter
-
 import time
 import board
 import busio
