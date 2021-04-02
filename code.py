@@ -1,17 +1,26 @@
 import board
 import displayio
 import busio
+import sys
 import terminalio
 from simpleio import map_range
 
 import adafruit_ili9341 # Big screen
 import adafruit_amg88xx
+import adafruit_stmpe610
+
+import adafruit_imageload
 from adafruit_display_text import label
 from adafruit_display_text.label import Label
 from adafruit_display_shapes.rect import Rect
+from adafruit_bitmap_font import bitmap_font
+from adafruit_display_text import label
 
 import time
 from Colours import Colours
+
+# 0x41 is the Resistive touch driver board
+#import i2c_scanner
 
 # Functions for controlling the screen directly
 def displayBackground(image_group, colour):
@@ -72,6 +81,9 @@ main_screen = adafruit_ili9341.ILI9341(display_bus, width=320, height=240)
 splash = displayio.Group(max_size=10)
 main_screen.show(splash)
 
+### Touch screen part ###
+stmpe610 = adafruit_stmpe610.Adafruit_STMPE610_I2C(i2c, address=0x41)
+
 # Create colours object
 colours = Colours()
 
@@ -105,18 +117,58 @@ element_color = [
 
 
 # Main calls
-displayBackground(splash, colours.GREEN)
-displayText(0, 5, "Hello world", colours.BLACK)
+#displayBackground(splash, colours.GREEN)
+#displayText(0, 5, "Hello world", colours.BLACK)
 
-time.sleep(2)
+image, palette = adafruit_imageload.load("img/picorder_graphic_dec.bmp", bitmap=displayio.Bitmap, palette=displayio.Palette)
+tile_grid = displayio.TileGrid(image, pixel_shader=palette)
+okuda_font = bitmap_font.load_font("fonts/okuda.bdf")
 
-thermal_image_group = displayio.Group(max_size=77)
-main_screen.show(thermal_image_group)
+lcars = displayio.Group(max_size=9)
 
-displayBackground(thermal_image_group, colours.BLACK)
+temperature_label = label.Label(okuda_font, x=48, y=58, max_glyphs=32, color=0)
+
+lcars.append(tile_grid)
+lcars.append(temperature_label)
+main_screen.show(lcars)
+
+import busio
+import board
+import digitalio
+from adafruit_stmpe610 import Adafruit_STMPE610_SPI
+
+print("Go Ahead... Touch my Screen!")
+
+
+temperature_label.text = "Hello world"
+
+
+while True:
+    try:
+        if stmpe610.touched and not stmpe610.buffer_empty:
+            touch_x, touch_y, pressure = stmpe610.read_data()
+
+            if touch_x < 600 and touch_y > 3400:
+                print("Touch top left")
+
+            #print(str(touch_x) + " " + str(touch_y) + " / " + str(stmpe610.buffer_size))
+
+    except KeyboardInterrupt:
+        sys.exit(1)
+
+    except Exception as err:
+        # Ignore all other errors except CTRL-C
+        pass
+
+#time.sleep(2)
+
+#thermal_image_group = displayio.Group(max_size=77)
+#main_screen.show(thermal_image_group)
+#displayBackground(thermal_image_group, colours.BLACK)
 
 # Define the foundational thermal image element layers; image_group[1:64]
 #   image_group[#]=(row * 8) + column
+'''
 for row in range(0, 8):
     for col in range(0, 8):
         pos_x, pos_y = element_grid(col, row)
@@ -129,3 +181,4 @@ while True:
     if run_mode == 0:
         image = amg8833.pixels  # Get camera data list
         v_min, v_max, v_sum = update_image_frame()
+'''
