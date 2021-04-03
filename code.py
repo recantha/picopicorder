@@ -33,7 +33,12 @@ picorder = Picorder(
     i2c_sda=board.GP0,
     dsp_command=board.GP21,
     dsp_chip_select=board.GP17,
-    dsp_reset=board.GP20
+    dsp_reset=board.GP20,
+    i2s_clock=board.GP10,
+    i2s_word=board.GP11,
+    i2s_data=board.GP9,
+    uart_tx=board.GP4,
+    uart_rx=board.GP5
 )
 
 # Test the display
@@ -45,22 +50,31 @@ picorder.displayLCARS()
 picorder.lcarsLabels(1)
 
 mode = 0
+print("Ready for input")
 while True:
     try:
         touch_x, touch_y, pressure = picorder.touch_screen.read_data()
         if picorder.touch_screen.touched:
             # When a touch is detected, we switch modes and do any 'set-up' required to go INTO the mode
-            if mode != 1 and (touch_x < 600 and touch_y > 3400):
-                print("Change to mode 1")
+            if mode != 1 and (touch_x < 800 and touch_y > 3400):
                 mode = 1
+                picorder.playSound("snd_control_beep")
                 picorder.thermal_camera.background()
 
             elif mode != 0 and (touch_x < 800 and touch_y < 800):
-                print("Change to mode 0")
                 mode = 0
+                picorder.playSound("snd_engage_beep")
                 picorder.displayLCARS()
+                picorder.lcarsLabels(1)
+
+            elif mode !=2 and (touch_x > 3200 and touch_y < 800):
+                mode = 2
+                picorder.playSound("snd_control_beep")
+                picorder.displayLCARS()
+                picorder.lcarsLabels(2)
 
             else:
+                #picorder.playSound("snd_tricorder")
                 print(str(mode) + " X:" + str(touch_x) + " / Y:" + str(touch_y))
 
             #print(str(touch_x) + " " + str(touch_y) + " / " + str(stmpe610.buffer_size))
@@ -75,59 +89,10 @@ while True:
 
     if mode == 0:
         # display the LCARS interface
-        pass
+        picorder.displayLCARSreadings(1)
 
     elif mode == 1:
         picorder.thermal_camera.render()
 
-
-import busio
-import board
-import digitalio
-from adafruit_stmpe610 import Adafruit_STMPE610_SPI
-
-print("Go Ahead... Touch my Screen!")
-
-
-temperature_label.text = "Hello world"
-
-
-while True:
-    try:
-        if stmpe610.touched and not stmpe610.buffer_empty:
-            touch_x, touch_y, pressure = stmpe610.read_data()
-
-            if touch_x < 600 and touch_y > 3400:
-                print("Touch top left")
-
-            #print(str(touch_x) + " " + str(touch_y) + " / " + str(stmpe610.buffer_size))
-
-    except KeyboardInterrupt:
-        sys.exit(1)
-
-    except Exception as err:
-        # Ignore all other errors except CTRL-C
-        pass
-
-#time.sleep(2)
-
-#thermal_image_group = displayio.Group(max_size=77)
-#main_screen.show(thermal_image_group)
-#displayBackground(thermal_image_group, colours.BLACK)
-
-# Define the foundational thermal image element layers; image_group[1:64]
-#   image_group[#]=(row * 8) + column
-'''
-for row in range(0, 8):
-    for col in range(0, 8):
-        pos_x, pos_y = element_grid(col, row)
-        # outline is normally None and stroke is 0
-        element = Rect(x=pos_x, y=pos_y, width=ELEMENT_SIZE, height=ELEMENT_SIZE, fill=None, outline=None, stroke=0)
-        thermal_image_group.append(element)
-
-run_mode = 0
-while True:
-    if run_mode == 0:
-        image = amg8833.pixels  # Get camera data list
-        v_min, v_max, v_sum = update_image_frame()
-'''
+    elif mode == 2:
+        picorder.displayLCARSreadings(2)

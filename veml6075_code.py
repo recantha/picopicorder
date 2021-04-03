@@ -1,4 +1,4 @@
-# ox10 is the VEML6075 sensor
+# 0x10 is the VEML6075 sensor
 import time
 import board
 import busio
