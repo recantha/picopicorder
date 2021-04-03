@@ -19,118 +19,67 @@ from adafruit_display_text import label
 import time
 from Colours import Colours
 
-# 0x41 is the Resistive touch driver board
 #import i2c_scanner
 
-# Functions for controlling the screen directly
-def displayBackground(image_group, colour):
-    color_bitmap = displayio.Bitmap(320, 240, 1)
-    color_palette = displayio.Palette(1)
-    color_palette[0] = colour
-    bg_sprite = displayio.TileGrid(color_bitmap, pixel_shader=color_palette, x=0, y=0)
-    image_group.append(bg_sprite)
-
-def displayText(x, y, text_to_display, colour):
-    # Draw a label
-    text_group = displayio.Group(max_size=10, scale=1, x=x, y=y)
-    text_area = label.Label(terminalio.FONT, text=text_to_display, color=colour)
-    text_group.append(text_area)  # Subgroup for text scaling
-    splash.append(text_group)
-
-# Helper functions
-def celsius_to_fahrenheit(deg_c=None):  # convert C to F; round to 1 degree C
-    return round(((9 / 5) * deg_c) + 32)
-
-def fahrenheit_to_celsius(deg_f=None):  # convert F to C; round to 1 degree F
-    return round((deg_f - 32) * (5 / 9))
-
-def element_grid(col0, row0):  # Determine display coordinates for column, row
-    x = int(ELEMENT_SIZE * col0 + 30)  # x coord + margin
-    y = int(ELEMENT_SIZE * row0 + 1)   # y coord + margin
-    return x, y  # Return display coordinates
-
-def update_image_frame():  # Get camera data and display
-    minimum = MAX_SENSOR_C  # Set minimum to sensor's maximum C value
-    maximum = MIN_SENSOR_C  # Set maximum to sensor's minimum C value
-
-    sum_bucket = 0  # Clear bucket for building average value
-
-    for row in range(0, 8):  # Parse camera data list and update display
-        for col in range(0, 8):
-            value = map_range(image[7 - row][7 - col],
-                              MIN_SENSOR_C, MAX_SENSOR_C,
-                              MIN_SENSOR_C, MAX_SENSOR_C)
-            color_index = int(map_range(value, MIN_RANGE_C, MAX_RANGE_C, 0, 7))
-            thermal_image_group[((row * 8) + col) + 1].fill = element_color[color_index]
-            sum_bucket = sum_bucket + value  # Calculate sum for average
-            minimum = min(value, minimum)
-            maximum = max(value, maximum)
-
-    return minimum, maximum, sum_bucket
+from PicoPicorder import Picorder
 
 # First of all, unlock the pins and buses related to the display(s)
 displayio.release_displays()
+picorder = Picorder(
+    spi_clock=board.GP18,
+    spi_mosi=board.GP19,
+    spi_miso=board.GP16,
+    i2c_scl=board.GP1,
+    i2c_sda=board.GP0,
+    dsp_command=board.GP21,
+    dsp_chip_select=board.GP17,
+    dsp_reset=board.GP20
+)
 
-# Create your bus objects
-spi = busio.SPI(clock=board.GP18, MOSI=board.GP19, MISO=board.GP16)
-i2c = busio.I2C(board.GP1, board.GP0)
+# Test the display
+#picorder.displayBackground(picorder.colours.PURPLE)
+#picorder.displayText(10, 10, "Hello world", picorder.colours.RED)
+#time.sleep(1)
 
-# Create objects for display
-display_bus = displayio.FourWire(spi, command=board.GP21, chip_select=board.GP17, reset=board.GP20)
-main_screen = adafruit_ili9341.ILI9341(display_bus, width=320, height=240)
-splash = displayio.Group(max_size=10)
-main_screen.show(splash)
+picorder.displayLCARS()
+picorder.lcarsLabels(1)
 
-### Touch screen part ###
-stmpe610 = adafruit_stmpe610.Adafruit_STMPE610_I2C(i2c, address=0x41)
+mode = 0
+while True:
+    try:
+        touch_x, touch_y, pressure = picorder.touch_screen.read_data()
+        if picorder.touch_screen.touched:
+            # When a touch is detected, we switch modes and do any 'set-up' required to go INTO the mode
+            if mode != 1 and (touch_x < 600 and touch_y > 3400):
+                print("Change to mode 1")
+                mode = 1
+                picorder.thermal_camera.background()
 
-# Create colours object
-colours = Colours()
+            elif mode != 0 and (touch_x < 800 and touch_y < 800):
+                print("Change to mode 0")
+                mode = 0
+                picorder.displayLCARS()
 
-##################
-# THERMAL SENSOR #
-##################
-amg8833 = adafruit_amg88xx.AMG88XX(i2c)
+            else:
+                print(str(mode) + " X:" + str(touch_x) + " / Y:" + str(touch_y))
 
-# The image sensor's design-limited temperature range
-MIN_SENSOR_C = 0
-MAX_SENSOR_C = 80
-MIN_SENSOR_F = celsius_to_fahrenheit(MIN_SENSOR_C)
-MAX_SENSOR_F = celsius_to_fahrenheit(MAX_SENSOR_C)
+            #print(str(touch_x) + " " + str(touch_y) + " / " + str(stmpe610.buffer_size))
 
-# Convert default alarm and min/max range values from config file
-MIN_RANGE_F =  60
-MAX_RANGE_F = 120
-MIN_RANGE_C = fahrenheit_to_celsius(MIN_RANGE_F)
-MAX_RANGE_C = fahrenheit_to_celsius(MAX_RANGE_F)
+    except KeyboardInterrupt:
+        sys.exit(1)
 
-# The board's integral display size (as informed by product page adafru.it/1770)
-WIDTH  = 320
-HEIGHT = 240
+    except Exception as err:
+        # Ignore all other errors except CTRL-C
+        print(str(err))
+        pass
 
-ELEMENT_SIZE = WIDTH // 10  # Size of element_grid blocks in pixels
+    if mode == 0:
+        # display the LCARS interface
+        pass
 
-# Block colors for the thermal image grid
-element_color = [
-    colours.GRAY, colours.BLUE, colours.GREEN, colours.YELLOW, colours.ORANGE, colours.RED, colours.VIOLET, colours.WHITE
-]
+    elif mode == 1:
+        picorder.thermal_camera.render()
 
-
-# Main calls
-#displayBackground(splash, colours.GREEN)
-#displayText(0, 5, "Hello world", colours.BLACK)
-
-image, palette = adafruit_imageload.load("img/picorder_graphic_dec.bmp", bitmap=displayio.Bitmap, palette=displayio.Palette)
-tile_grid = displayio.TileGrid(image, pixel_shader=palette)
-okuda_font = bitmap_font.load_font("fonts/okuda.bdf")
-
-lcars = displayio.Group(max_size=9)
-
-temperature_label = label.Label(okuda_font, x=48, y=58, max_glyphs=32, color=0)
-
-lcars.append(tile_grid)
-lcars.append(temperature_label)
-main_screen.show(lcars)
 
 import busio
 import board
