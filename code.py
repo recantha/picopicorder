@@ -46,11 +46,21 @@ picorder = Picorder(
 #picorder.displayText(10, 10, "Hello world", picorder.colours.RED)
 #time.sleep(1)
 
-picorder.displayLCARS()
-picorder.lcarsLabels(1)
 
 mode = 0
 print("Ready for input")
+
+if mode == 0:
+    picorder.displayLCARS()
+    picorder.lcarsLabels(1)
+
+elif mode == 1:
+    picorder.thermal_camera.background()
+
+elif mode == 2:
+    picorder.displayLCARS()
+    picorder.lcarsLabels(2)
+
 while True:
     try:
         touch_x, touch_y, pressure = picorder.touch_screen.read_data()

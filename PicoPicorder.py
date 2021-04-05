@@ -161,8 +161,8 @@ class Picorder:
     def loadSounds(self):
         self.sounds = {}
 
-        snd_tricorder_file = open("snd/tricorder.wav", "rb")
-        self.sounds['snd_tricorder'] = audiocore.WaveFile(snd_tricorder_file)
+        #snd_tricorder_file = open("snd/tricorder.wav", "rb")
+        #self.sounds['snd_tricorder'] = audiocore.WaveFile(snd_tricorder_file)
 
         snd_control_beep_file = open("snd/control_beep.wav", "rb")
         self.sounds['snd_control_beep'] = audiocore.WaveFile(snd_control_beep_file)
