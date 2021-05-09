@@ -23,7 +23,7 @@ class ThermalCamera:
     def fahrenheit_to_celsius(self, deg_f=None):  # convert F to C; round to 1 degree F
         return round((deg_f - 32) * (5 / 9))
 
-    def __init__(self, width, height, i2c, display_bus, display):
+    def __init__(self, width, height, i2c, display_bus, display, reverse):
         # The board's integral display size (as informed by product page adafru.it/1770)
         self.WIDTH = width
         self.HEIGHT = height
@@ -31,6 +31,7 @@ class ThermalCamera:
         self.i2c = i2c
         self.display = display
         self.colours = Colours()
+        self.reverse = reverse
 
         # Block colors for the thermal image grid
         self.element_colors = [
@@ -96,8 +97,14 @@ class ThermalCamera:
 
         for row1 in range(0, 8):  # Parse camera data list and update display
             for col1 in range(0, 8):
-                value = map_range(image[7 - row1][7 - col1],
-                                  self.MIN_SENSOR_C, self.MAX_SENSOR_C,
-                                  self.MIN_SENSOR_C, self.MAX_SENSOR_C)
+                if self.reverse:
+                    value = map_range(image[7 - row1][7 - col1],
+                                      self.MIN_SENSOR_C, self.MAX_SENSOR_C,
+                                      self.MIN_SENSOR_C, self.MAX_SENSOR_C)
+                else:
+                    value = map_range(image[row1][col1],
+                                      self.MIN_SENSOR_C, self.MAX_SENSOR_C,
+                                      self.MIN_SENSOR_C, self.MAX_SENSOR_C)
+
                 color_index = int(map_range(value, self.MIN_RANGE_C, self.MAX_RANGE_C, 0, 7))
                 self.image_group[((row1 * 8) + col1) + 1].fill = self.element_colors[color_index]

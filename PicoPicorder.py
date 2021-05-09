@@ -77,7 +77,7 @@ class Picorder:
             #self.main_screen.show(self.splash)
 
             # Define sensor devices
-            self.thermal_camera = ThermalCamera(width=self.WIDTH, height=self.HEIGHT, i2c=self.i2c, display_bus=self.display_bus, display=self.main_screen)
+            self.thermal_camera = ThermalCamera(width=self.WIDTH, height=self.HEIGHT, i2c=self.i2c, display_bus=self.display_bus, display=self.main_screen, reverse=False)
             self.bme680 = adafruit_bme680.Adafruit_BME680_I2C(self.i2c, address=0x77)
             self.bme680.seaLevelhPa = self.SEA_LEVEL_NORMAL
             self.veml = adafruit_veml6075.VEML6075(self.i2c, integration_time=100)
