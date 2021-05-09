@@ -95,8 +95,9 @@ while True:
 
             if not picorder.button.value:
                 #print("Change to 1")
-                picorder.thermal_camera.background()
                 mode = 1
+                picorder.matrix.flash()
+                picorder.thermal_camera.background()
 
         elif mode == 1:
             picorder.thermal_camera.render()
@@ -104,6 +105,7 @@ while True:
             if not picorder.button.value:
                 #print("Change to 2")
                 mode = 2
+                picorder.matrix.flash()
                 picorder.displayLCARS("gps")
                 picorder.lcarsLabels("gps")
 
@@ -113,6 +115,7 @@ while True:
             if not picorder.button.value:
                 #print("Change to 0")
                 mode = 0
+                picorder.matrix.flash()
                 picorder.displayLCARS("atmos")
                 picorder.lcarsLabels("atmos")
 

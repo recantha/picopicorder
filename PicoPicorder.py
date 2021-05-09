@@ -25,6 +25,7 @@ import adafruit_gps
 # Instance imports
 from Colours import Colours
 from ThermalCamera import ThermalCamera
+from Matrix import Matrix
 
 sounds_enabled = False
 if sounds_enabled:
@@ -81,15 +82,18 @@ class Picorder:
             self.bme680.seaLevelhPa = self.SEA_LEVEL_NORMAL
             self.veml = adafruit_veml6075.VEML6075(self.i2c, integration_time=100)
             self.gps = adafruit_gps.GPS(self.uart, debug=False)
+            self.matrix = Matrix(i2c=self.i2c)
 
-            self.okuda_font = bitmap_font.load_font("fonts/okuda.bdf")
+            self.okuda_font = bitmap_font.load_font("fonts/okuda.pcf")
+            self.okuda_font.load_glyphs(b'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 %.')
+
             self.loadSounds()
             self.setupGPS()
             self.setupLCARS()
 
         except Exception as err:
             self.blinkError(err)
-            sleep(2)
+            time.sleep(2)
 
     def displayText(self, x, y, text_to_display, colour):
         # Draw a label
@@ -100,7 +104,7 @@ class Picorder:
 
     def setupLCARS(self):
         try:
-            self.lcars = displayio.Group(max_size=1)
+            self.lcars = displayio.Group(max_size=10)
 
             lcars_image, lcars_palette = adafruit_imageload.load("img/picorder_graphic_dec.bmp", bitmap=displayio.Bitmap, palette=displayio.Palette)
 
@@ -166,7 +170,7 @@ class Picorder:
         if lcars_type == "atmos":
             temperature_offset = -5
 
-            self.lcarsDisplayText(name="value_1", text_to_display=str(round(self.bme680.temperature + temperature_offset, 2)) + ' C')
+            self.lcarsDisplayText(name="value_1", text_to_display=str(round(self.bme680.temperature + temperature_offset, 1)) + ' C')
             self.lcarsDisplayText(name="value_2", text_to_display=str(self.bme680.gas))
             self.lcarsDisplayText(name="value_3", text_to_display=str(round(self.veml.uv_index, 2)))
             self.lcarsDisplayText(name="value_4", text_to_display=str(round(self.bme680.relative_humidity, 1)) + '%')
