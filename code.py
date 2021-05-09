@@ -41,53 +41,80 @@ picorder = Picorder(
     uart_rx=board.GP5
 )
 
-# Test the display
-#picorder.displayBackground(picorder.colours.PURPLE)
-#picorder.displayText(10, 10, "Hello world", picorder.colours.RED)
-#time.sleep(1)
+# Initial mode
+mode = 2
+touch_screen_enabled = False
 
+#picorder.playSound("snd_startup")
 
-mode = 0
+picorder.displayLCARS("gps")
+picorder.lcarsLabels("gps")
+
 print("Ready for input")
-
-if mode == 0:
-    picorder.displayLCARS()
-    picorder.lcarsLabels(1)
-
-elif mode == 1:
-    picorder.thermal_camera.background()
-
-elif mode == 2:
-    picorder.displayLCARS()
-    picorder.lcarsLabels(2)
 
 while True:
     try:
-        touch_x, touch_y, pressure = picorder.touch_screen.read_data()
-        if picorder.touch_screen.touched:
-            # When a touch is detected, we switch modes and do any 'set-up' required to go INTO the mode
-            if mode != 1 and (touch_x < 800 and touch_y > 3400):
-                mode = 1
-                picorder.playSound("snd_control_beep")
+        if touch_screen_enabled:
+            try:
+                touch_x, touch_y, pressure = picorder.touch_screen.read_data()
+                #print(str(touch_x) + ' ' + str(touch_y) + ' ' + str(pressure))
+
+                if picorder.touch_screen.touched:
+                    # When a touch is detected, we switch modes and do any 'set-up' required to go INTO the mode
+                    if mode != 1 and (touch_x < 800 and touch_y > 3400):
+                        mode = 1
+                        picorder.playSound("snd_control_beep")
+                        picorder.thermal_camera.background()
+
+                    elif mode != 0 and (touch_x < 800 and touch_y < 800):
+                        mode = 0
+                        picorder.playSound("snd_engage_beep")
+                        picorder.lcarsLabels("atmos")
+                        picorder.displayLCARS("atmos")
+
+                    elif mode !=2 and (touch_x > 2900 and touch_y > 3500):
+                        mode = 2
+                        picorder.playSound("snd_control_beep")
+                        picorder.lcarsLabels("gps")
+                        picorder.displayLCARS("gps")
+
+                    else:
+                        picorder.playSound("snd_tricorder")
+                        print(str(mode) + " X:" + str(touch_x) + " / Y:" + str(touch_y))
+
+            except Exception as err:
+                print(str(err))
+                pass
+
+        else:
+            pass
+
+        if mode == 0:
+            # display the LCARS interface
+            picorder.displayLCARSreadings("atmos")
+
+            if not picorder.button.value:
+                #print("Change to 1")
                 picorder.thermal_camera.background()
+                mode = 1
 
-            elif mode != 0 and (touch_x < 800 and touch_y < 800):
-                mode = 0
-                picorder.playSound("snd_engage_beep")
-                picorder.displayLCARS()
-                picorder.lcarsLabels(1)
+        elif mode == 1:
+            picorder.thermal_camera.render()
 
-            elif mode !=2 and (touch_x > 3200 and touch_y < 800):
+            if not picorder.button.value:
+                #print("Change to 2")
                 mode = 2
-                picorder.playSound("snd_control_beep")
-                picorder.displayLCARS()
-                picorder.lcarsLabels(2)
+                picorder.displayLCARS("gps")
+                picorder.lcarsLabels("gps")
 
-            else:
-                #picorder.playSound("snd_tricorder")
-                print(str(mode) + " X:" + str(touch_x) + " / Y:" + str(touch_y))
+        elif mode == 2:
+            picorder.displayLCARSreadings("gps")
 
-            #print(str(touch_x) + " " + str(touch_y) + " / " + str(stmpe610.buffer_size))
+            if not picorder.button.value:
+                #print("Change to 0")
+                mode = 0
+                picorder.displayLCARS("atmos")
+                picorder.lcarsLabels("atmos")
 
     except KeyboardInterrupt:
         sys.exit(1)
@@ -95,14 +122,4 @@ while True:
     except Exception as err:
         # Ignore all other errors except CTRL-C
         print(str(err))
-        pass
 
-    if mode == 0:
-        # display the LCARS interface
-        picorder.displayLCARSreadings(1)
-
-    elif mode == 1:
-        picorder.thermal_camera.render()
-
-    elif mode == 2:
-        picorder.displayLCARSreadings(2)
