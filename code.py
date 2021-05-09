@@ -41,14 +41,14 @@ picorder = Picorder(
     uart_rx=board.GP5
 )
 
-# Initial mode
-mode = 2
+# Disable/enable touchscreen funcationality
 touch_screen_enabled = False
 
-#picorder.playSound("snd_startup")
+# Initial mode
+mode = 0
 
-picorder.displayLCARS("gps")
-picorder.lcarsLabels("gps")
+picorder.displayLCARS("atmos")
+picorder.lcarsLabels("atmos")
 
 print("Ready for input")
 
