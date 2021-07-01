@@ -2,10 +2,8 @@
 import board
 import displayio
 import busio
-import terminalio
 from digitalio import DigitalInOut, Direction, Pull
 import time
-import gc
 
 # Display imports
 import adafruit_imageload
@@ -17,28 +15,34 @@ from adafruit_display_text import label
 
 # Component imports
 import adafruit_ili9341 # Big screen
-import adafruit_stmpe610 # Touch screen
-import adafruit_bme680
-import adafruit_veml6075
-import adafruit_gps
+import adafruit_bme680 # sensor
+import adafruit_veml6075 # sensor
+import adafruit_gps # gps
 
 # Instance imports
 from Colours import Colours
 from ThermalCamera import ThermalCamera
 from Matrix import Matrix
 
+displayio.release_displays()
+
 sounds_enabled = False
 if sounds_enabled:
     import audiocore
     import audiobusio
 
+touch_screen_enabled = False
+if touch_screen_enabled:
+    import adafruit_stmpe610 # Touch screen
 
 class Picorder:
     WIDTH = 320
     HEIGHT = 240
     SEA_LEVEL_NORMAL = 1013
 
-    def __init__(self, spi_clock, spi_mosi, spi_miso, i2c_scl, i2c_sda, dsp_command, dsp_chip_select, dsp_reset,
+    def __init__(self,
+        spi_clock, spi_mosi, spi_miso,
+        i2c_scl, i2c_sda, dsp_command, dsp_chip_select, dsp_reset,
         i2s_clock, i2s_word, i2s_data,
         uart_tx, uart_rx
     ):
@@ -66,41 +70,34 @@ class Picorder:
             self.setupBlinkies()
             self.setupButtons()
 
-            try:
-                self.touch_screen = adafruit_stmpe610.Adafruit_STMPE610_I2C(self.i2c, address=0x41)
+            if touch_screen_enabled:
+                try:
+                    self.touch_screen = adafruit_stmpe610.Adafruit_STMPE610_I2C(self.i2c, address=0x41)
 
-            except Exception as err:
-                self.led.value = False
-                print("No touch screen could be enabled")
+                except Exception as err:
+                    self.led.value = False
+                    print("No touch screen could be enabled")
 
-            #self.splash = displayio.Group(max_size=10)
-            #self.main_screen.show(self.splash)
+            self.okuda_font = bitmap_font.load_font("fonts/okuda.pcf")
+            #self.okuda_font = bitmap_font.load_font("fonts/font5x8.bin")
+            #self.okuda_font.load_glyphs(b'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 %.')
 
             # Define sensor devices
-            self.thermal_camera = ThermalCamera(width=self.WIDTH, height=self.HEIGHT, i2c=self.i2c, display_bus=self.display_bus, display=self.main_screen, reverse=False)
+            self.thermal_camera = ThermalCamera(width=self.WIDTH, height=self.HEIGHT, i2c=self.i2c, display_bus=self.display_bus, display=self.main_screen, reverse=False, font=self.okuda_font)
             self.bme680 = adafruit_bme680.Adafruit_BME680_I2C(self.i2c, address=0x77)
             self.bme680.seaLevelhPa = self.SEA_LEVEL_NORMAL
             self.veml = adafruit_veml6075.VEML6075(self.i2c, integration_time=100)
             self.gps = adafruit_gps.GPS(self.uart, debug=False)
             self.matrix = Matrix(i2c=self.i2c)
 
-            self.okuda_font = bitmap_font.load_font("fonts/okuda.pcf")
-            self.okuda_font.load_glyphs(b'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 %.')
-
             self.loadSounds()
             self.setupGPS()
             self.setupLCARS()
 
         except Exception as err:
+            print("Error in PicoPicorder.init()")
             self.blinkError(err)
             time.sleep(2)
-
-    def displayText(self, x, y, text_to_display, colour):
-        # Draw a label
-        text_group = displayio.Group(max_size=10, scale=1, x=x, y=y)
-        text_area = label.Label(terminalio.FONT, text=text_to_display, color=colour)
-        text_group.append(text_area)  # Subgroup for text scaling
-        self.splash.append(text_group)
 
     def setupLCARS(self):
         try:
@@ -239,6 +236,10 @@ class Picorder:
 
     def setupBlinkies(self):
         self.led = DigitalInOut(board.GP15)
+        self.led.direction = Direction.OUTPUT
+        self.led.value = True
+
+        self.led = DigitalInOut(board.GP2)
         self.led.direction = Direction.OUTPUT
         self.led.value = True
 

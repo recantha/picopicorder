@@ -1,30 +1,10 @@
 import board
-import displayio
-import busio
+#import displayio
 import sys
-import terminalio
-from simpleio import map_range
-
-import adafruit_ili9341 # Big screen
-import adafruit_amg88xx
-import adafruit_stmpe610
-
-import adafruit_imageload
-from adafruit_display_text import label
-from adafruit_display_text.label import Label
-from adafruit_display_shapes.rect import Rect
-from adafruit_bitmap_font import bitmap_font
-from adafruit_display_text import label
-
 import time
-from Colours import Colours
-
-#import i2c_scanner
-
 from PicoPicorder import Picorder
 
 # First of all, unlock the pins and buses related to the display(s)
-displayio.release_displays()
 picorder = Picorder(
     spi_clock=board.GP18,
     spi_mosi=board.GP19,
@@ -47,13 +27,21 @@ touch_screen_enabled = False
 # Initial mode
 mode = 0
 
-picorder.displayLCARS("atmos")
-picorder.lcarsLabels("atmos")
+if mode == 0:
+    picorder.displayLCARS("atmos")
+    picorder.lcarsLabels("atmos")
+elif mode == 1:
+    picorder.thermal_camera.background()
+elif mode == 2:
+    picorder.displayLCARS("gps")
+    picorder.lcarsLabels("gps")
+
 
 print("Ready for input")
 
 while True:
     try:
+        '''
         if touch_screen_enabled:
             try:
                 touch_x, touch_y, pressure = picorder.touch_screen.read_data()
@@ -88,6 +76,7 @@ while True:
 
         else:
             pass
+        '''
 
         if mode == 0:
             # display the LCARS interface
